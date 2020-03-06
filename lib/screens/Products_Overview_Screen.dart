@@ -3,11 +3,15 @@ import 'package:provider/provider.dart';
 
 import '../widgets/App_Drawer.dart';
 import '../widgets/badge.dart';
-import '../screens/Products_Grid.dart';
+import '../widgets/Products_Grid.dart';
+
 import '../screens/Cart_Screen.dart';
+
 import '../Providers/Cart.dart';
+import '../Providers/Products.dart';
 
 enum Options {
+  //Remember enums map every item with a index
   Favourites,
   All,
 }
@@ -19,6 +23,40 @@ class ProductsOverviewScreen extends StatefulWidget {
 
 class _ProductsOverviewScreenState extends State<ProductsOverviewScreen> {
   var showFavouritesOnly = false;
+  bool isInit = true;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    // Provider.of<Products>(context).fetchAndSetProducts();//This doesn't work here
+
+    /*Future.delayed(Duration.zero).then((_) {
+      Provider.of<Products>(context).fetchAndSetProducts();
+    });*/ //This does work in the initstate
+
+    // Provider.of<Products>(context,listen: false).fetchAndSetProducts();This also work here
+    //but we'll be using it in didChangeDependencies
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    if (isInit) {
+      setState(() {
+        isLoading = true;
+      });
+      Provider.of<Products>(context, listen: false)
+          .fetchAndSetProducts()
+          .then((_) {
+        setState(() {
+          isLoading = false;
+        });
+      });
+    }
+    isInit = false;
+    super.didChangeDependencies();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,6 +65,8 @@ class _ProductsOverviewScreenState extends State<ProductsOverviewScreen> {
         title: Text('My Shop'),
         actions: <Widget>[
           Consumer<Cart>(
+            //Consumers are special listeners which always listen and take a builder function and a child
+            //when the state of the provider(in this case 'cart') is changed, only the builder function inside of the consumer is run
             builder: (_, cart, ch) => Badge(
               child: IconButton(
                 icon: Icon(Icons.shopping_cart),
@@ -46,8 +86,9 @@ class _ProductsOverviewScreenState extends State<ProductsOverviewScreen> {
           ),
           PopupMenuButton(
             color: Theme.of(context).accentColor,
-            icon: Icon(Icons.more_vert),
-            onSelected: (Options selectedValue) {
+            icon: Icon(Icons.more_vert /*3 dot icon*/),
+            onSelected: (Options
+                selectedValue /*automatically passes a selected value*/) {
               setState(() {
                 if (selectedValue == Options.Favourites) {
                   return showFavouritesOnly = true;
@@ -56,6 +97,7 @@ class _ProductsOverviewScreenState extends State<ProductsOverviewScreen> {
               });
             },
             itemBuilder: (_) => [
+              //PopUpMenuButton takes a itemBuilder
               PopupMenuItem(
                 child: Row(
                   children: <Widget>[
@@ -75,7 +117,8 @@ class _ProductsOverviewScreenState extends State<ProductsOverviewScreen> {
                     ),
                   ],
                 ),
-                value: Options.Favourites,
+                value: Options
+                    .Favourites, //if pressed, this value is passed to the function passed to onSelected argument
               ),
               PopupMenuItem(
                 child: Row(
@@ -102,7 +145,16 @@ class _ProductsOverviewScreenState extends State<ProductsOverviewScreen> {
           ),
         ],
       ),
-      body: ProductsGrid(showFavouritesOnly),
+      body: isLoading
+          ? Center(
+              child: CircularProgressIndicator(),
+            )
+          : RefreshIndicator(
+              onRefresh: () async {
+                await Provider.of<Products>(context, listen: false)
+                    .fetchAndSetProducts();
+              },
+              child: ProductsGrid(showFavouritesOnly)),
     );
   }
 }
