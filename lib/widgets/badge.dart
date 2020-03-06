@@ -18,7 +18,7 @@ class Badge extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         child,
-        Positioned(
+        Positioned(//Special widget only available inside Stack widget to position its child
           right: 8,
           top: 8,
           child: Container(
@@ -33,7 +33,7 @@ class Badge extends StatelessWidget {
               minHeight: 16,
             ),
             child: Text(
-              value,
+              value,//this value is ge dynamically
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 10,
